@@ -1,15 +1,16 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { enableScreens } from 'react-native-screens';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import TasksListScreen from '../screens/TasksListScreen';
 import TaskDetailScreen from '../screens/TaskDetailScreen';
 import ChatScreen from '../screens/ChatScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import WalkthroughScreen from '../screens/WalkthroughScreen';
-import { Text } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 
 enableScreens();
 
@@ -48,11 +49,31 @@ function MainTabs() {
 }
 
 export default function RootNavigator() {
+  const [hasSeenWalkthrough, setHasSeenWalkthrough] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const value = await AsyncStorage.getItem('hasSeenWalkthrough');
+        setHasSeenWalkthrough(value === 'true');
+      } catch {
+        setHasSeenWalkthrough(true);
+      }
+    })();
+  }, []);
+
+  if (hasSeenWalkthrough === null) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
+
   return (
     <NavigationContainer>
-      <Stack.Navigator>
-        {/* 初回起動時のみ表示予定。現段階ではスキップ可 */}
-        {/* <Stack.Screen name="Walkthrough" component={WalkthroughScreen} options={{ title: 'ようこそ' }} /> */}
+      <Stack.Navigator initialRouteName={hasSeenWalkthrough ? 'MainTabs' : 'Walkthrough'}>
+        <Stack.Screen name="Walkthrough" component={WalkthroughScreen} options={{ title: 'ようこそ' }} />
         <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>

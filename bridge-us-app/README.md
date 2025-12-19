@@ -25,10 +25,22 @@ npx expo start
   - チャット（`ChatScreen`）
   - 通知（`NotificationsScreen`）
   - プロフィール（`ProfileScreen`）
+ - 初回表示制御: `AsyncStorage` に `hasSeenWalkthrough` を保存/読み込みして初回のみウォークスルー表示
+ - モックAPI: `src/api/tasks.ts` で一覧/詳細のデータ取得を擬似実装
 
 ## ナビゲーション構成
 - Tabs: タスク / チャット / 通知 / プロフィール
 - タスク配下に Stack（一覧 → 詳細）
+
+## 初回表示制御について
+- 初回起動時にウォークスルーを表示、`はじめる` を押すと `AsyncStorage` に `hasSeenWalkthrough=true` を保存し、次回以降は `MainTabs` から開始します。
+
+## 開発メモ
+- ウォークスルーを再度確認したい場合は以下でフラグを削除してください。
+```tsx
+import AsyncStorage from '@react-native-async-storage/async-storage';
+await AsyncStorage.removeItem('hasSeenWalkthrough');
+```
 
 ## 識別子
 - iOS `bundleIdentifier`: `com.bridgeus`

@@ -1,17 +1,35 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
-
-const mockTasks = Array.from({ length: 10 }).map((_, i) => ({
-  id: `task-${i + 1}`,
-  title: `おねがいタスク ${i + 1}`,
-  company: `サンプル企業 ${i + 1}`,
-}));
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { getTasks } from '../api/tasks';
+import { Task } from '../types/task';
 
 export default function TasksListScreen({ navigation }: any) {
+  const [tasks, setTasks] = useState<Task[] | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await getTasks();
+        setTasks(data);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { alignItems: 'center', justifyContent: 'center' }]}> 
+        <ActivityIndicator />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <FlatList
-        data={mockTasks}
+        data={tasks ?? []}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: 16 }}
         renderItem={({ item }) => (
