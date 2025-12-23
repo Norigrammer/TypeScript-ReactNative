@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Button, Alert, ActivityIndicator } from 'react-native';
-import { getTaskById } from '../api/tasks';
+import { StyleSheet, Button, Alert, ActivityIndicator, View } from 'react-native';
+import ThemedView from '../components/themed-view';
+import ThemedText from '../components/themed-text';
+import { getTaskById, applyToTask, unapplyTask } from '../api/tasks';
 import { Task } from '../types/task';
 
 export default function TaskDetailScreen({ route }: any) {
@@ -21,33 +23,47 @@ export default function TaskDetailScreen({ route }: any) {
 
   if (loading) {
     return (
-      <View style={styles.container}>
+      <ThemedView style={styles.container}>
         <ActivityIndicator />
-      </View>
+      </ThemedView>
     );
   }
 
   if (!task) {
     return (
-      <View style={styles.container}>
-        <Text>タスクが見つかりませんでした（ID: {taskId}）。</Text>
-      </View>
+      <ThemedView style={styles.container}>
+        <ThemedText>タスクが見つかりませんでした（ID: {taskId}）。</ThemedText>
+      </ThemedView>
     );
   }
 
+  const onToggleApply = async () => {
+    try {
+      if (task.applied) {
+        await unapplyTask(task.id);
+        setTask({ ...task, applied: false });
+        Alert.alert('応募を取り消しました', `タスク: ${task.id}`);
+      } else {
+        await applyToTask(task.id);
+        setTask({ ...task, applied: true });
+        Alert.alert('応募しました', `タスク: ${task.id}`);
+      }
+    } catch {}
+  };
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{task.title}</Text>
-      <Text style={styles.sub}>{task.company}</Text>
-      {!!task.description && <Text style={{ marginTop: 8 }}>{task.description}</Text>}
+    <ThemedView style={styles.container}>
+      <ThemedText style={styles.title}>{task.title}</ThemedText>
+      <ThemedText style={styles.sub}>{task.company}</ThemedText>
+      {!!task.description && <ThemedText style={{ marginTop: 8 }}>{task.description}</ThemedText>}
       <View style={{ height: 16 }} />
-      <Button title="このタスクに応募する" onPress={() => Alert.alert('応募しました', `タスク: ${task.id}`)} />
-    </View>
+      <Button title={task.applied ? '応募を取り消す' : 'このタスクに応募する'} onPress={onToggleApply} />
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   title: { fontSize: 20, fontWeight: 'bold' },
-  sub: { marginTop: 8, color: '#666' },
+  sub: { marginTop: 8 },
 });

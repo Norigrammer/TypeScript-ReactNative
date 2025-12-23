@@ -3,4 +3,5 @@ export interface Task {
   title: string;
   company: string;
   description?: string;
+  applied?: boolean;
 }

@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import ThemedView from '../components/themed-view';
+import ThemedText from '../components/themed-text';
 import { getTasks } from '../api/tasks';
 import { Task } from '../types/task';
 
@@ -20,14 +22,14 @@ export default function TasksListScreen({ navigation }: any) {
 
   if (loading) {
     return (
-      <View style={[styles.container, { alignItems: 'center', justifyContent: 'center' }]}> 
+      <ThemedView style={[styles.container, { alignItems: 'center', justifyContent: 'center' }]}> 
         <ActivityIndicator />
-      </View>
+      </ThemedView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <ThemedView style={styles.container}>
       <FlatList
         data={tasks ?? []}
         keyExtractor={(item) => item.id}
@@ -37,18 +39,21 @@ export default function TasksListScreen({ navigation }: any) {
             style={styles.card}
             onPress={() => navigation.navigate('TaskDetail', { taskId: item.id })}
           >
-            <Text style={styles.title}>{item.title}</Text>
-            <Text style={styles.sub}>{item.company}</Text>
+            <ThemedText style={styles.title}>{item.title}</ThemedText>
+            <ThemedText style={styles.sub}>
+              {item.company}{' '}
+              {item.applied ? '（応募済み）' : ''}
+            </ThemedText>
           </TouchableOpacity>
         )}
       />
-    </View>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1 },
   card: { padding: 16, borderRadius: 12, backgroundColor: '#f7f7f7', marginBottom: 12 },
   title: { fontSize: 16, fontWeight: 'bold' },
-  sub: { marginTop: 4, color: '#666' },
+  sub: { marginTop: 4 },
 });

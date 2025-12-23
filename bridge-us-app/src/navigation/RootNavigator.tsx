@@ -39,8 +39,8 @@ function TasksStackNavigator() {
 
 function MainTabs() {
   return (
-    <Tab.Navigator screenOptions={{ headerShown: false }}>
-      <Tab.Screen name="Tasks" component={TasksStackNavigator} options={{ title: 'タスク' }} />
+    <Tab.Navigator screenOptions={{ headerShown: true }}>
+      <Tab.Screen name="Tasks" component={TasksStackNavigator} options={{ title: 'おねがいタスク' }} />
       <Tab.Screen name="Chat" component={ChatScreen} options={{ title: 'チャット' }} />
       <Tab.Screen name="Notifications" component={NotificationsScreen} options={{ title: '通知' }} />
       <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: 'プロフィール' }} />
