@@ -27,6 +27,17 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "firebase": {
+        "apiKey": "AIzaSyD9pmmozyr16_qNNrnq4JKIYjLQOO2KoS0",
+        "authDomain": "bridge-us-bb4e2.firebaseapp.com",
+        "projectId": "bridge-us-bb4e2",
+        "storageBucket": "bridge-us-bb4e2.firebasestorage.app",
+        "messagingSenderId": "934819118286",
+        "appId": "1:934819118286:web:1f8bcd6bd4b9f9157ea49f",
+        "measurementId": "G-TZ88N6H24W"
+      }
     }
   }
 }

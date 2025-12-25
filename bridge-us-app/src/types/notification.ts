@@ -4,7 +4,8 @@ export type NotificationType =
   | 'application_rejected'
   | 'task_reminder'
   | 'message'
-  | 'task_completed';
+  | 'task_completed'
+  | 'new_application';      // 企業向け: 新規応募通知
 
 export interface Notification {
   id: string;

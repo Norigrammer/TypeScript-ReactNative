@@ -28,6 +28,27 @@ npx expo start
  - 初回表示制御: `AsyncStorage` に `hasSeenWalkthrough` を保存/読み込みして初回のみウォークスルー表示
  - モックAPI: `src/api/tasks.ts` で一覧/詳細のデータ取得を擬似実装
 
+## Firebase 接続
+1. Firebase コンソールで Web アプリの構成値を取得（API キー等）
+2. `bridge-us-app/.env` を作成し、以下のサンプルを埋める（`.env.example` を参照）
+```
+EXPO_PUBLIC_FIREBASE_API_KEY=...
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=...
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=...
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=...
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
+EXPO_PUBLIC_FIREBASE_APP_ID=...
+```
+3. 依存導入（済みでなければ）
+```powershell
+Set-Location "c:\Users\H.S\Programming\TypeScript-ReactNative\bridge-us-app"
+npm install firebase
+```
+4. 設定: [src/config/firebase.ts](src/config/firebase.ts) が環境変数を読み込み、`auth`/`db` を初期化します（ReactNativePersistence を使用）
+5. チャット購読/送信（Firestore）: [src/api/chat-firebase.ts](src/api/chat-firebase.ts) の `subscribeMessages` / `sendMessage`
+
+注意: Firestore と Authentication を Firebase コンソールで有効化し、ルールを適切に設定してください。
+
 ## ナビゲーション構成
 - Tabs: タスク / チャット / 通知 / プロフィール
 - タスク配下に Stack（一覧 → 詳細）

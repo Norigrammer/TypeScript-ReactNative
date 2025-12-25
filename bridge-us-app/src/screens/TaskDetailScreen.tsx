@@ -8,15 +8,20 @@ import {
   TouchableOpacity,
   useColorScheme,
 } from 'react-native';
+import { CommonActions, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import ThemedView from '../components/themed-view';
 import ThemedText from '../components/themed-text';
 import ApplicationModal from '../components/ApplicationModal';
-import { getTaskById, applyToTask, unapplyTask, addFavorite, removeFavorite } from '../api/tasks';
+import { getTaskById, applyToTask, unapplyTask, addFavorite, removeFavorite } from '../api/tasks-firebase';
 import { Task } from '../types/task';
 import { Colors } from '../constants/theme';
+import { useAuth } from '../contexts/AuthContext';
+import { isStudentUser } from '../types/user';
 
 export default function TaskDetailScreen({ route }: any) {
+  const { isLoggedIn, user } = useAuth();
+  const navigation = useNavigation();
   const taskId = route?.params?.taskId ?? 'unknown';
   const [task, setTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
@@ -28,13 +33,13 @@ export default function TaskDetailScreen({ route }: any) {
   useEffect(() => {
     (async () => {
       try {
-        const data = await getTaskById(taskId);
+        const data = await getTaskById(taskId, user?.id ?? null);
         setTask(data ?? null);
       } finally {
         setLoading(false);
       }
     })();
-  }, [taskId]);
+  }, [taskId, user]);
 
   if (loading) {
     return (
@@ -61,10 +66,10 @@ export default function TaskDetailScreen({ route }: any) {
   };
 
   const onCancelApplication = async () => {
-    if (applying) return;
+    if (applying || !user) return;
     setApplying(true);
     try {
-      await unapplyTask(task.id);
+      await unapplyTask(user.id, task.id);
       setTask({ ...task, applied: false });
       Alert.alert('応募を取り消しました');
     } catch {
@@ -75,8 +80,17 @@ export default function TaskDetailScreen({ route }: any) {
   };
 
   const onSubmitApplication = async (message: string) => {
+    if (!user || !isStudentUser(user)) return;
     try {
-      await applyToTask(task.id, message);
+      await applyToTask({
+        userId: user.id,
+        taskId: task.id,
+        message,
+        studentName: user.name,
+        studentUniversity: user.university,
+        studentYear: user.year,
+        studentAvatarUrl: user.avatarUrl,
+      });
       setTask({ ...task, applied: true });
       setShowModal(false);
       Alert.alert('応募完了', 'タスクへの応募が完了しました。企業からの連絡をお待ちください。');
@@ -86,12 +100,13 @@ export default function TaskDetailScreen({ route }: any) {
   };
 
   const onToggleFavorite = async () => {
+    if (!user) return;
     try {
       if (task.favorited) {
-        await removeFavorite(task.id);
+        await removeFavorite(user.id, task.id);
         setTask({ ...task, favorited: false });
       } else {
-        await addFavorite(task.id);
+        await addFavorite(user.id, task.id);
         setTask({ ...task, favorited: true });
       }
     } catch {
@@ -103,13 +118,13 @@ export default function TaskDetailScreen({ route }: any) {
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.headerRow}>
-          {task.category && (
-            <View style={[styles.categoryBadge, { backgroundColor: colors.primary + '20' }]}>
+          {(task.categories && task.categories.length > 0 ? task.categories : (task.category ? [task.category] : [])).map((cat) => (
+            <View key={cat} style={[styles.categoryBadge, { backgroundColor: colors.primary + '20' }]}>
               <ThemedText style={[styles.categoryText, { color: colors.primary }]}>
-                {task.category}
+                {cat}
               </ThemedText>
             </View>
-          )}
+          ))}
           <TouchableOpacity onPress={onToggleFavorite} style={styles.favoriteButton}>
             <Ionicons
               name={task.favorited ? 'heart' : 'heart-outline'}
@@ -121,9 +136,27 @@ export default function TaskDetailScreen({ route }: any) {
 
         <ThemedText style={styles.title}>{task.title}</ThemedText>
 
-        <ThemedText style={[styles.company, { color: colors.subText }]}>
-          {task.company}
-        </ThemedText>
+        {/* 企業情報 - タップで企業プロフィールへ */}
+        <TouchableOpacity
+          style={styles.companyRow}
+          onPress={() => {
+            if (task.companyId) {
+              (navigation as any).navigate('CompanyProfile', { companyId: task.companyId });
+            }
+          }}
+          activeOpacity={0.7}
+          disabled={!task.companyId}
+        >
+          <View style={[styles.companyAvatar, { backgroundColor: '#8b5cf6' }]}>
+            <Ionicons name="business" size={16} color="#fff" />
+          </View>
+          <ThemedText style={[styles.company, { color: colors.subText }]}>
+            {task.company}
+          </ThemedText>
+          {task.companyId && (
+            <Ionicons name="chevron-forward" size={16} color={colors.subText} />
+          )}
+        </TouchableOpacity>
 
         <View style={[styles.infoCard, { backgroundColor: colors.card }]}>
           {task.deadline && (
@@ -157,32 +190,53 @@ export default function TaskDetailScreen({ route }: any) {
       </ScrollView>
 
       <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
-        <TouchableOpacity
-          style={[
-            styles.applyButton,
-            {
-              backgroundColor: task.applied ? colors.card : colors.primary,
-              borderWidth: task.applied ? 1 : 0,
-              borderColor: colors.border,
-            },
-          ]}
-          onPress={handleApplyPress}
-          activeOpacity={0.8}
-          disabled={applying}
-        >
-          {applying ? (
-            <ActivityIndicator color={task.applied ? colors.text : '#ffffff'} />
-          ) : (
-            <ThemedText
-              style={[
-                styles.applyButtonText,
-                { color: task.applied ? colors.text : '#ffffff' },
-              ]}
-            >
-              {task.applied ? '応募を取り消す' : 'このタスクに応募する'}
+        {isLoggedIn ? (
+          <TouchableOpacity
+            style={[
+              styles.applyButton,
+              {
+                backgroundColor: task.applied ? colors.card : colors.primary,
+                borderWidth: task.applied ? 1 : 0,
+                borderColor: colors.border,
+              },
+            ]}
+            onPress={handleApplyPress}
+            activeOpacity={0.8}
+            disabled={applying}
+          >
+            {applying ? (
+              <ActivityIndicator color={task.applied ? colors.text : '#ffffff'} />
+            ) : (
+              <ThemedText
+                style={[
+                  styles.applyButtonText,
+                  { color: task.applied ? colors.text : '#ffffff' },
+                ]}
+              >
+                {task.applied ? '応募を取り消す' : 'このタスクに応募する'}
+              </ThemedText>
+            )}
+          </TouchableOpacity>
+        ) : (
+          <View>
+            <ThemedText style={[styles.loginPrompt, { color: colors.subText }]}>
+              応募するにはログインが必要です
             </ThemedText>
-          )}
-        </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.applyButton, { backgroundColor: colors.primary }]}
+              onPress={() => {
+                navigation.getParent()?.getParent()?.dispatch(
+                  CommonActions.navigate('Auth')
+                );
+              }}
+              activeOpacity={0.8}
+            >
+              <ThemedText style={[styles.applyButtonText, { color: '#ffffff' }]}>
+                ログイン / 新規登録
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
       <ApplicationModal
@@ -230,11 +284,24 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: 12,
+  },
+  companyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    gap: 8,
+  },
+  companyAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   company: {
     fontSize: 15,
-    marginBottom: 20,
+    flex: 1,
   },
   infoCard: {
     borderRadius: 12,
@@ -283,5 +350,10 @@ const styles = StyleSheet.create({
   applyButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  loginPrompt: {
+    fontSize: 13,
+    textAlign: 'center',
+    marginBottom: 12,
   },
 });

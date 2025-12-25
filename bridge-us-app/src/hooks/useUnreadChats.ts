@@ -1,25 +1,23 @@
-import { useState, useEffect, useCallback } from 'react';
-import { getTotalUnreadCount } from '../api/chat';
+import { useState, useEffect } from 'react';
+import { subscribeUnreadChatCount } from '../api/chat-firebase';
+import { useAuth } from '../contexts/AuthContext';
 
 export function useUnreadChats() {
+  const { isLoggedIn, user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const fetchUnreadCount = useCallback(async () => {
-    try {
-      const count = await getTotalUnreadCount();
-      setUnreadCount(count);
-    } catch {
-      // エラー時は0を維持
-    }
-  }, []);
-
   useEffect(() => {
-    fetchUnreadCount();
+    if (!isLoggedIn || !user) {
+      setUnreadCount(0);
+      return;
+    }
 
-    // 30秒ごとに更新
-    const interval = setInterval(fetchUnreadCount, 30000);
-    return () => clearInterval(interval);
-  }, [fetchUnreadCount]);
+    const unsubscribe = subscribeUnreadChatCount(user.id, (count) => {
+      setUnreadCount(count);
+    });
 
-  return { unreadCount, refetch: fetchUnreadCount };
+    return () => unsubscribe();
+  }, [isLoggedIn, user]);
+
+  return { unreadCount };
 }

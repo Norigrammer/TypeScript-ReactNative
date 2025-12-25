@@ -11,11 +11,13 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import ThemedView from '../components/themed-view';
 import ThemedText from '../components/themed-text';
-import { getFavoriteTasks } from '../api/tasks';
+import { getFavoriteTasks } from '../api/tasks-firebase';
 import { Task } from '../types/task';
 import { Colors } from '../constants/theme';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function FavoritesScreen({ navigation }: any) {
+  const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -23,14 +25,19 @@ export default function FavoritesScreen({ navigation }: any) {
   const colors = Colors[colorScheme];
 
   const fetchTasks = useCallback(async () => {
+    if (!user) {
+      setTasks([]);
+      setLoading(false);
+      return;
+    }
     try {
-      const data = await getFavoriteTasks();
+      const data = await getFavoriteTasks(user.id);
       setTasks(data);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     fetchTasks();
@@ -78,13 +85,13 @@ export default function FavoritesScreen({ navigation }: any) {
           >
             <View style={styles.cardHeader}>
               <View style={styles.badgeContainer}>
-                {item.category && (
-                  <View style={[styles.categoryBadge, { backgroundColor: colors.primary + '20' }]}>
+                {(item.categories && item.categories.length > 0 ? item.categories : (item.category ? [item.category] : [])).map((cat) => (
+                  <View key={cat} style={[styles.categoryBadge, { backgroundColor: colors.primary + '20' }]}>
                     <ThemedText style={[styles.categoryText, { color: colors.primary }]}>
-                      {item.category}
+                      {cat}
                     </ThemedText>
                   </View>
-                )}
+                ))}
                 {item.applied && (
                   <View style={[styles.appliedBadge, { backgroundColor: '#10b98120' }]}>
                     <ThemedText style={styles.appliedText}>応募済み</ThemedText>

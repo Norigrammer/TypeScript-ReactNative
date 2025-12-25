@@ -15,8 +15,9 @@ import { useRoute, RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import ThemedView from '../components/themed-view';
 import { Colors } from '../constants/theme';
-import { getMessages, sendMessage, markAsRead } from '../api/chat';
+import { subscribeMessages, sendMessage as sendMessageFirebase } from '../api/chat-firebase';
 import { Message } from '../types/chat';
+import { useAuth } from '../contexts/AuthContext';
 
 type ChatRoomParams = {
   ChatRoom: {
@@ -36,30 +37,39 @@ export default function ChatRoomScreen() {
   const flatListRef = useRef<FlatList>(null);
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-
-  const fetchMessages = useCallback(async () => {
-    try {
-      const data = await getMessages(chatRoomId);
-      setMessages(data);
-      await markAsRead(chatRoomId);
-    } catch (error) {
-      console.error('Failed to fetch messages:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [chatRoomId]);
+  const { user } = useAuth();
 
   useEffect(() => {
-    fetchMessages();
-  }, [fetchMessages]);
+    setLoading(true);
+    const unsub = subscribeMessages(chatRoomId, (items) => {
+      const mapped: Message[] = items
+        .slice()
+        .reverse()
+        .map((m) => ({
+          id: m.id || Math.random().toString(36).slice(2),
+          chatRoomId: m.roomId,
+          senderId: m.senderId,
+          senderType: user && m.senderId === user.id ? 'user' : 'company',
+          content: m.text,
+          createdAt: (m.createdAt?.toDate?.() || new Date()).toISOString(),
+          read: true,
+        }));
+      setMessages(mapped);
+      setLoading(false);
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: false });
+      }, 50);
+    });
+    return () => unsub();
+  }, [chatRoomId, user]);
 
   const handleSend = async () => {
     if (!inputText.trim() || sending) return;
+    if (!user) return;
 
     setSending(true);
     try {
-      const newMessage = await sendMessage(chatRoomId, inputText.trim());
-      setMessages((prev) => [...prev, newMessage]);
+      await sendMessageFirebase(chatRoomId, user.id, inputText.trim());
       setInputText('');
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });

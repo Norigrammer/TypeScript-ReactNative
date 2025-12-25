@@ -9,20 +9,22 @@ import {
   RefreshControl,
   useColorScheme,
 } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, CommonActions } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import ThemedView from '../components/themed-view';
 import ThemedText from '../components/themed-text';
 import { Colors } from '../constants/theme';
-import { getChatRooms } from '../api/chat';
+import { subscribeChatRooms } from '../api/chat-firebase';
 import { ChatRoom } from '../types/chat';
+import { useAuth } from '../contexts/AuthContext';
 
 type RootStackParamList = {
   ChatRoom: { chatRoomId: string; title: string };
 };
 
 export default function ChatScreen() {
+  const { isLoggedIn, user } = useAuth();
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -30,28 +32,36 @@ export default function ChatScreen() {
   const colors = Colors[colorScheme];
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
-  const fetchChatRooms = useCallback(async () => {
-    try {
-      const data = await getChatRooms();
-      setChatRooms(data);
-    } catch (error) {
-      console.error('Failed to fetch chat rooms:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
-
   useFocusEffect(
     useCallback(() => {
-      fetchChatRooms();
-    }, [fetchChatRooms])
+      if (!isLoggedIn || !user) {
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      const unsub = subscribeChatRooms(user.id, (rooms) => {
+        const mapped: ChatRoom[] = rooms.map((r: any) => ({
+          id: r.id,
+          taskId: r.taskId || '',
+          taskTitle: r.taskTitle || '',
+          companyName: r.companyName || '企業',
+          companyAvatarUrl: r.companyAvatarUrl,
+          lastMessage: r.lastMessage || '',
+          lastMessageAt: r.lastMessageAt?.toDate?.()?.toISOString?.() || undefined,
+          unreadCount: r.unreadCount || 0,
+        }));
+        setChatRooms(mapped);
+        setLoading(false);
+        setRefreshing(false);
+      });
+      return () => unsub && unsub();
+    }, [isLoggedIn, user])
   );
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
-    fetchChatRooms();
-  }, [fetchChatRooms]);
+    // Firestore onSnapshot will push updates automatically
+  }, []);
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return '';
@@ -151,6 +161,32 @@ export default function ChatScreen() {
       />
     </TouchableOpacity>
   );
+
+  // 未ログイン時の表示
+  if (!isLoggedIn) {
+    return (
+      <ThemedView style={styles.centerContainer}>
+        <View style={[styles.guestIcon, { backgroundColor: colors.tint + '15' }]}>
+          <Ionicons name="chatbubbles-outline" size={48} color={colors.tint} />
+        </View>
+        <ThemedText style={styles.emptyTitle}>ログインが必要です</ThemedText>
+        <Text style={[styles.emptyMessage, { color: colors.tabIconDefault }]}>
+          チャット機能を利用するには{'\n'}アカウント登録が必要です
+        </Text>
+        <TouchableOpacity
+          style={[styles.loginButton, { backgroundColor: colors.tint }]}
+          onPress={() => {
+            navigation.getParent()?.getParent()?.dispatch(
+              CommonActions.navigate('Auth')
+            );
+          }}
+          activeOpacity={0.8}
+        >
+          <ThemedText style={styles.loginButtonText}>ログイン / 新規登録</ThemedText>
+        </TouchableOpacity>
+      </ThemedView>
+    );
+  }
 
   if (loading) {
     return (
@@ -277,5 +313,24 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
     lineHeight: 20,
+  },
+  guestIcon: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  loginButton: {
+    marginTop: 24,
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  loginButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

@@ -8,11 +8,18 @@ import {
   RefreshControl,
   useColorScheme,
 } from 'react-native';
+import { CommonActions, useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import ThemedView from '../components/themed-view';
 import ThemedText from '../components/themed-text';
-import { getNotifications, markAsRead, markAllAsRead } from '../api/notifications';
+import {
+  subscribeNotifications,
+  markAsRead,
+  markAllAsRead,
+} from '../api/notifications-firebase';
 import { Notification, NotificationType } from '../types/notification';
 import { Colors } from '../constants/theme';
+import { useAuth } from '../contexts/AuthContext';
 
 const TYPE_ICONS: Record<NotificationType, string> = {
   new_task: '📋',
@@ -21,6 +28,7 @@ const TYPE_ICONS: Record<NotificationType, string> = {
   task_reminder: '⏰',
   message: '💬',
   task_completed: '🎉',
+  new_application: '🙋',
 };
 
 const TYPE_COLORS: Record<NotificationType, string> = {
@@ -30,6 +38,7 @@ const TYPE_COLORS: Record<NotificationType, string> = {
   task_reminder: '#f59e0b',
   message: '#8b5cf6',
   task_completed: '#06b6d4',
+  new_application: '#8b5cf6',
 };
 
 function formatDate(dateString: string): string {
@@ -52,46 +61,75 @@ function formatDate(dateString: string): string {
 }
 
 export default function NotificationsScreen() {
+  const { isLoggedIn, user } = useAuth();
+  const navigation = useNavigation();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
 
-  const fetchNotifications = useCallback(async () => {
-    try {
-      const data = await getNotifications();
+  useEffect(() => {
+    if (!isLoggedIn || !user) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    const unsubscribe = subscribeNotifications(user.id, (data) => {
       setNotifications(data);
-    } finally {
       setLoading(false);
       setRefreshing(false);
-    }
-  }, []);
+    });
 
-  useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
+    return () => unsubscribe();
+  }, [isLoggedIn, user]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    fetchNotifications();
-  }, [fetchNotifications]);
+    // Firestore onSnapshot will push updates automatically
+  }, []);
 
   const handleNotificationPress = async (notification: Notification) => {
     if (!notification.read) {
       await markAsRead(notification.id);
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === notification.id ? { ...n, read: true } : n))
-      );
+      // Firestore will update via subscription
     }
   };
 
   const handleMarkAllAsRead = async () => {
-    await markAllAsRead();
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    if (!user) return;
+    await markAllAsRead(user.id);
+    // Firestore will update via subscription
   };
 
   const unreadCount = notifications.filter((n) => !n.read).length;
+
+  // 未ログイン時の表示
+  if (!isLoggedIn) {
+    return (
+      <ThemedView style={styles.loadingContainer}>
+        <View style={[styles.guestIcon, { backgroundColor: colors.primary + '15' }]}>
+          <Ionicons name="notifications-outline" size={48} color={colors.primary} />
+        </View>
+        <ThemedText style={styles.guestTitle}>ログインが必要です</ThemedText>
+        <ThemedText style={[styles.guestMessage, { color: colors.subText }]}>
+          通知機能を利用するには{'\n'}アカウント登録が必要です
+        </ThemedText>
+        <TouchableOpacity
+          style={[styles.loginButton, { backgroundColor: colors.primary }]}
+          onPress={() => {
+            navigation.getParent()?.dispatch(
+              CommonActions.navigate('Auth')
+            );
+          }}
+          activeOpacity={0.8}
+        >
+          <ThemedText style={styles.loginButtonText}>ログイン / 新規登録</ThemedText>
+        </TouchableOpacity>
+      </ThemedView>
+    );
+  }
 
   if (loading) {
     return (
@@ -265,5 +303,34 @@ const styles = StyleSheet.create({
   },
   time: {
     fontSize: 12,
+  },
+  guestIcon: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  guestTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  guestMessage: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  loginButton: {
+    marginTop: 24,
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  loginButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

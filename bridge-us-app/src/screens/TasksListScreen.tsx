@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   StyleSheet,
   FlatList,
@@ -14,13 +14,15 @@ import { Ionicons } from '@expo/vector-icons';
 import ThemedView from '../components/themed-view';
 import ThemedText from '../components/themed-text';
 import ErrorView from '../components/ErrorView';
-import { getTasks } from '../api/tasks';
+import { subscribeTasks } from '../api/tasks-firebase';
 import { Task } from '../types/task';
 import { Colors } from '../constants/theme';
+import { useAuth } from '../contexts/AuthContext';
 
 const CATEGORIES = ['すべて', 'データ入力', 'リサーチ', 'デザイン', 'ライティング', '翻訳'];
 
 export default function TasksListScreen({ navigation }: any) {
+  const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -30,27 +32,23 @@ export default function TasksListScreen({ navigation }: any) {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
 
-  const fetchTasks = useCallback(async () => {
-    try {
-      setError(null);
-      const data = await getTasks();
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+
+    const unsubscribe = subscribeTasks(user?.id ?? null, (data) => {
       setTasks(data);
-    } catch (err) {
-      setError('タスクの取得に失敗しました');
-    } finally {
       setLoading(false);
       setRefreshing(false);
-    }
-  }, []);
+    });
 
-  useEffect(() => {
-    fetchTasks();
-  }, [fetchTasks]);
+    return () => unsubscribe();
+  }, [user]);
 
-  const onRefresh = useCallback(() => {
+  const onRefresh = () => {
     setRefreshing(true);
-    fetchTasks();
-  }, [fetchTasks]);
+    // Firestore onSnapshot will push updates automatically
+  };
 
   const filteredTasks = useMemo(() => {
     if (!tasks) return [];
@@ -61,8 +59,11 @@ export default function TasksListScreen({ navigation }: any) {
         task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         task.company.toLowerCase().includes(searchQuery.toLowerCase());
 
+      const taskCategories = task.categories && task.categories.length > 0
+        ? task.categories
+        : (task.category ? [task.category] : []);
       const matchesCategory =
-        selectedCategory === 'すべて' || task.category === selectedCategory;
+        selectedCategory === 'すべて' || taskCategories.includes(selectedCategory);
 
       return matchesSearch && matchesCategory;
     });
@@ -82,7 +83,10 @@ export default function TasksListScreen({ navigation }: any) {
         <ErrorView
           title="読み込みエラー"
           message={error}
-          onRetry={fetchTasks}
+          onRetry={() => {
+            setLoading(true);
+            setError(null);
+          }}
         />
       </ThemedView>
     );
@@ -178,13 +182,13 @@ export default function TasksListScreen({ navigation }: any) {
             {/* ヘッダー: カテゴリ + 応募状態 + お気に入り */}
             <View style={styles.cardHeader}>
               <View style={styles.badgeContainer}>
-                {item.category && (
-                  <View style={[styles.categoryBadge, { backgroundColor: colors.primary + '20' }]}>
+                {(item.categories && item.categories.length > 0 ? item.categories : (item.category ? [item.category] : [])).map((cat) => (
+                  <View key={cat} style={[styles.categoryBadge, { backgroundColor: colors.primary + '20' }]}>
                     <ThemedText style={[styles.categoryText, { color: colors.primary }]}>
-                      {item.category}
+                      {cat}
                     </ThemedText>
                   </View>
-                )}
+                ))}
                 {item.applied && (
                   <View style={[styles.appliedBadge, { backgroundColor: '#10b98120' }]}>
                     <ThemedText style={styles.appliedText}>応募済み</ThemedText>

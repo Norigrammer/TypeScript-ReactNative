@@ -7,45 +7,48 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import ThemedView from '../components/themed-view';
-import ThemedText from '../components/themed-text';
-import { Colors } from '../constants/theme';
-import { useAuth } from '../contexts/AuthContext';
+import ThemedView from '../../components/themed-view';
+import ThemedText from '../../components/themed-text';
+import { Colors } from '../../constants/theme';
+import { useAuth } from '../../contexts/AuthContext';
+import { isCompanyUser } from '../../types/user';
 
-export default function ProfileScreen({ navigation }: any) {
+const COMPANY_PRIMARY = '#8b5cf6';
+
+export default function CompanyProfileScreen({ navigation }: any) {
   const { user, isLoggedIn, logout } = useAuth();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
 
   // 未ログイン時の表示
-  if (!isLoggedIn || !user) {
+  if (!isLoggedIn || !user || !isCompanyUser(user)) {
     return (
       <ThemedView style={styles.container}>
         <View style={styles.guestContainer}>
-          <View style={[styles.guestIcon, { backgroundColor: colors.primary + '15' }]}>
-            <Ionicons name="person-outline" size={48} color={colors.primary} />
+          <View style={[styles.guestIcon, { backgroundColor: COMPANY_PRIMARY + '15' }]}>
+            <Ionicons name="business-outline" size={48} color={COMPANY_PRIMARY} />
           </View>
-          <ThemedText style={styles.guestTitle}>マイページ</ThemedText>
+          <ThemedText style={styles.guestTitle}>企業マイページ</ThemedText>
           <ThemedText style={[styles.guestSubtitle, { color: colors.subText }]}>
-            ログインして、タスクへの応募や{'\n'}お気に入り機能をお使いください
+            ログインして、タスクの管理や{'\n'}応募者とのチャットをご利用ください
           </ThemedText>
 
           <TouchableOpacity
-            style={[styles.primaryButton, { backgroundColor: colors.primary }]}
-            onPress={() => navigation.navigate('Register')}
+            style={[styles.primaryButton, { backgroundColor: COMPANY_PRIMARY }]}
+            onPress={() => navigation.navigate('Auth', { screen: 'CompanyRegister' })}
             activeOpacity={0.8}
           >
-            <Ionicons name="person-add" size={20} color="#fff" />
+            <Ionicons name="business" size={20} color="#fff" />
             <ThemedText style={styles.primaryButtonText}>新規登録</ThemedText>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.secondaryButton, { borderColor: colors.primary }]}
-            onPress={() => navigation.navigate('Login')}
+            style={[styles.secondaryButton, { borderColor: COMPANY_PRIMARY }]}
+            onPress={() => navigation.navigate('Auth', { screen: 'Login' })}
             activeOpacity={0.8}
           >
-            <Ionicons name="log-in" size={20} color={colors.primary} />
-            <ThemedText style={[styles.secondaryButtonText, { color: colors.primary }]}>
+            <Ionicons name="log-in" size={20} color={COMPANY_PRIMARY} />
+            <ThemedText style={[styles.secondaryButtonText, { color: COMPANY_PRIMARY }]}>
               ログイン
             </ThemedText>
           </TouchableOpacity>
@@ -59,72 +62,58 @@ export default function ProfileScreen({ navigation }: any) {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* アバターセクション */}
         <View style={styles.avatarSection}>
-          <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-            <ThemedText style={styles.avatarText}>
-              {user.name.charAt(0)}
-            </ThemedText>
+          <View style={[styles.avatar, { backgroundColor: COMPANY_PRIMARY }]}>
+            {user.logoUrl ? (
+              <ThemedText style={styles.avatarText}>
+                {user.companyName.charAt(0)}
+              </ThemedText>
+            ) : (
+              <Ionicons name="business" size={36} color="#fff" />
+            )}
           </View>
-          <ThemedText style={styles.name}>{user.name}</ThemedText>
-          {user.university && (
-            <ThemedText style={[styles.university, { color: colors.subText }]}>
-              {user.university} {user.faculty}
-            </ThemedText>
-          )}
+          <ThemedText style={styles.companyName}>{user.companyName}</ThemedText>
+          <ThemedText style={[styles.representativeName, { color: colors.subText }]}>
+            担当者: {user.representativeName}
+          </ThemedText>
           <TouchableOpacity
-            style={[styles.editButton, { borderColor: colors.primary }]}
-            onPress={() => navigation.navigate('EditProfile')}
+            style={[styles.editButton, { borderColor: COMPANY_PRIMARY }]}
+            onPress={() => navigation.navigate('CompanyEditProfile')}
           >
-            <Ionicons name="pencil" size={14} color={colors.primary} />
-            <ThemedText style={[styles.editButtonText, { color: colors.primary }]}>
+            <Ionicons name="pencil" size={14} color={COMPANY_PRIMARY} />
+            <ThemedText style={[styles.editButtonText, { color: COMPANY_PRIMARY }]}>
               編集
             </ThemedText>
           </TouchableOpacity>
         </View>
 
         {/* 統計セクション */}
-        <TouchableOpacity
-          style={[styles.statsContainer, { backgroundColor: colors.card }]}
-          onPress={() => navigation.navigate('MyApplications')}
-          activeOpacity={0.7}
-        >
+        <View style={[styles.statsContainer, { backgroundColor: colors.card }]}>
           <View style={styles.statItem}>
-            <ThemedText style={[styles.statNumber, { color: colors.primary }]}>
-              {user.appliedTaskCount}
+            <ThemedText style={[styles.statNumber, { color: COMPANY_PRIMARY }]}>
+              {user.publishedTaskCount ?? 0}
             </ThemedText>
             <ThemedText style={[styles.statLabel, { color: colors.subText }]}>
-              応募中
+              公開中タスク
             </ThemedText>
           </View>
-          <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
-          <View style={styles.statItem}>
-            <ThemedText style={[styles.statNumber, { color: colors.primary }]}>
-              {user.completedTaskCount}
-            </ThemedText>
-            <ThemedText style={[styles.statLabel, { color: colors.subText }]}>
-              完了済み
-            </ThemedText>
-          </View>
-          <View style={styles.arrowContainer}>
-            <ThemedText style={[styles.arrow, { color: colors.subText }]}>→</ThemedText>
-          </View>
-        </TouchableOpacity>
+        </View>
 
         {/* メニューセクション */}
         <TouchableOpacity
           style={[styles.menuItem, { backgroundColor: colors.card }]}
-          onPress={() => navigation.navigate('Favorites')}
+          onPress={() => navigation.navigate('MyTasks')}
           activeOpacity={0.7}
         >
           <View style={styles.menuItemContent}>
-            <Ionicons name="heart-outline" size={22} color={colors.primary} />
-            <ThemedText style={styles.menuItemText}>お気に入り</ThemedText>
+            <Ionicons name="briefcase-outline" size={22} color={COMPANY_PRIMARY} />
+            <ThemedText style={styles.menuItemText}>タスク管理</ThemedText>
           </View>
           <Ionicons name="chevron-forward" size={20} color={colors.subText} />
         </TouchableOpacity>
 
         {/* プロフィール情報セクション */}
         <View style={[styles.infoSection, { backgroundColor: colors.card }]}>
-          <ThemedText style={styles.sectionTitle}>プロフィール情報</ThemedText>
+          <ThemedText style={styles.sectionTitle}>企業情報</ThemedText>
 
           <View style={styles.infoRow}>
             <ThemedText style={[styles.infoLabel, { color: colors.subText }]}>
@@ -133,21 +122,12 @@ export default function ProfileScreen({ navigation }: any) {
             <ThemedText style={styles.infoValue}>{user.email}</ThemedText>
           </View>
 
-          {user.year && (
+          {user.description && (
             <View style={styles.infoRow}>
               <ThemedText style={[styles.infoLabel, { color: colors.subText }]}>
-                学年
+                会社紹介
               </ThemedText>
-              <ThemedText style={styles.infoValue}>{user.year}年生</ThemedText>
-            </View>
-          )}
-
-          {user.bio && (
-            <View style={styles.infoRow}>
-              <ThemedText style={[styles.infoLabel, { color: colors.subText }]}>
-                自己紹介
-              </ThemedText>
-              <ThemedText style={styles.infoValue}>{user.bio}</ThemedText>
+              <ThemedText style={styles.infoValue}>{user.description}</ThemedText>
             </View>
           )}
         </View>
@@ -228,7 +208,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
   },
-  // ログイン済みユーザー用スタイル
+  // ログイン済み企業ユーザー用スタイル
   avatarSection: {
     alignItems: 'center',
     marginBottom: 24,
@@ -246,11 +226,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#ffffff',
   },
-  name: {
+  companyName: {
     fontSize: 22,
     fontWeight: 'bold',
   },
-  university: {
+  representativeName: {
     fontSize: 14,
     marginTop: 4,
   },
@@ -273,9 +253,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
+    justifyContent: 'center',
   },
   statItem: {
-    flex: 1,
     alignItems: 'center',
   },
   statNumber: {
@@ -285,19 +265,6 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 12,
     marginTop: 4,
-  },
-  statDivider: {
-    width: 1,
-    marginHorizontal: 16,
-  },
-  arrowContainer: {
-    position: 'absolute',
-    right: 16,
-    top: '50%',
-    marginTop: -10,
-  },
-  arrow: {
-    fontSize: 20,
   },
   menuItem: {
     flexDirection: 'row',

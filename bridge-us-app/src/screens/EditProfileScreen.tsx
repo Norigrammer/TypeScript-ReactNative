@@ -17,14 +17,12 @@ import { Ionicons } from '@expo/vector-icons';
 import ThemedView from '../components/themed-view';
 import ThemedText from '../components/themed-text';
 import { Colors } from '../constants/theme';
-import { getCurrentUser, updateUserProfile } from '../api/user';
-import { User } from '../types/user';
+import { useAuth } from '../contexts/AuthContext';
 
 const YEAR_OPTIONS = [1, 2, 3, 4, 5, 6];
 
 export default function EditProfileScreen() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, updateUser } = useAuth();
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -37,25 +35,15 @@ export default function EditProfileScreen() {
   const navigation = useNavigation();
 
   useEffect(() => {
-    fetchUser();
-  }, []);
-
-  const fetchUser = async () => {
-    try {
-      const data = await getCurrentUser();
-      setUser(data);
-      setName(data.name);
-      setEmail(data.email);
-      setUniversity(data.university || '');
-      setFaculty(data.faculty || '');
-      setYear(data.year);
-      setBio(data.bio || '');
-    } catch (error) {
-      console.error('Failed to fetch user:', error);
-    } finally {
-      setLoading(false);
+    if (user) {
+      setName(user.name);
+      setEmail(user.email);
+      setUniversity(user.university || '');
+      setFaculty(user.faculty || '');
+      setYear(user.year);
+      setBio(user.bio || '');
     }
-  };
+  }, [user]);
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -69,7 +57,7 @@ export default function EditProfileScreen() {
 
     setSaving(true);
     try {
-      await updateUserProfile({
+      updateUser({
         name: name.trim(),
         email: email.trim(),
         university: university.trim() || undefined,
@@ -114,10 +102,10 @@ export default function EditProfileScreen() {
     </View>
   );
 
-  if (loading) {
+  if (!user) {
     return (
       <ThemedView style={styles.centerContainer}>
-        <ActivityIndicator size="large" color={colors.tint} />
+        <ThemedText>ログインが必要です</ThemedText>
       </ThemedView>
     );
   }

@@ -1,25 +1,23 @@
-import { useState, useEffect, useCallback } from 'react';
-import { getUnreadCount } from '../api/notifications';
+import { useState, useEffect } from 'react';
+import { subscribeUnreadCount } from '../api/notifications-firebase';
+import { useAuth } from '../contexts/AuthContext';
 
 export function useUnreadNotifications() {
+  const { isLoggedIn, user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const fetchUnreadCount = useCallback(async () => {
-    try {
-      const count = await getUnreadCount();
-      setUnreadCount(count);
-    } catch {
-      // エラー時は0を維持
-    }
-  }, []);
-
   useEffect(() => {
-    fetchUnreadCount();
+    if (!isLoggedIn || !user) {
+      setUnreadCount(0);
+      return;
+    }
 
-    // 30秒ごとに更新
-    const interval = setInterval(fetchUnreadCount, 30000);
-    return () => clearInterval(interval);
-  }, [fetchUnreadCount]);
+    const unsubscribe = subscribeUnreadCount(user.id, (count) => {
+      setUnreadCount(count);
+    });
 
-  return { unreadCount, refetch: fetchUnreadCount };
+    return () => unsubscribe();
+  }, [isLoggedIn, user]);
+
+  return { unreadCount };
 }

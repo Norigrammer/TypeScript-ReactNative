@@ -58,7 +58,7 @@ export default function WalkthroughScreen({ navigation }: any) {
     try {
       await AsyncStorage.setItem('hasSeenWalkthrough', 'true');
     } catch {}
-    navigation.replace('MainTabs');
+    navigation.replace('Auth');
   };
 
   const onNext = () => {

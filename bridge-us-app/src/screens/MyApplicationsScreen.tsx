@@ -10,9 +10,10 @@ import {
 } from 'react-native';
 import ThemedView from '../components/themed-view';
 import ThemedText from '../components/themed-text';
-import { getAppliedTasks } from '../api/tasks';
+import { getAppliedTasks } from '../api/tasks-firebase';
 import { AppliedTask, ApplicationStatus } from '../types/task';
 import { Colors } from '../constants/theme';
+import { useAuth } from '../contexts/AuthContext';
 
 const STATUS_LABELS: Record<ApplicationStatus, string> = {
   pending: '審査中',
@@ -29,6 +30,7 @@ const STATUS_COLORS: Record<ApplicationStatus, string> = {
 };
 
 export default function MyApplicationsScreen({ navigation }: any) {
+  const { user } = useAuth();
   const [tasks, setTasks] = useState<AppliedTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -36,14 +38,19 @@ export default function MyApplicationsScreen({ navigation }: any) {
   const colors = Colors[colorScheme];
 
   const fetchTasks = useCallback(async () => {
+    if (!user) {
+      setTasks([]);
+      setLoading(false);
+      return;
+    }
     try {
-      const data = await getAppliedTasks();
+      const data = await getAppliedTasks(user.id);
       setTasks(data);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     fetchTasks();
