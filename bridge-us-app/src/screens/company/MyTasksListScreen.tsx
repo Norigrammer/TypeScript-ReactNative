@@ -22,12 +22,14 @@ const COMPANY_PRIMARY = '#8b5cf6';
 const STATUS_LABELS: Record<TaskStatus, string> = {
   draft: '下書き',
   published: '公開中',
+  unpublished: '非公開',
   closed: '終了',
 };
 
 const STATUS_COLORS: Record<TaskStatus, string> = {
   draft: '#6b7280',
   published: '#10b981',
+  unpublished: '#f59e0b',
   closed: '#ef4444',
 };
 
@@ -80,15 +82,20 @@ export default function MyTasksListScreen({ navigation }: any) {
     );
   };
 
-  const handleToggleStatus = async (taskId: string, currentStatus: TaskStatus) => {
+  const handleChangeStatus = async (taskId: string, newStatus: TaskStatus) => {
     if (!user || !isCompanyUser(user)) return;
 
-    const newStatus: TaskStatus = currentStatus === 'published' ? 'closed' : 'published';
-    const actionLabel = newStatus === 'published' ? '公開' : '終了';
+    const actionLabels: Record<TaskStatus, string> = {
+      draft: '下書きに戻す',
+      published: '公開する',
+      unpublished: '非公開にする',
+      closed: '終了する',
+    };
+    const actionLabel = actionLabels[newStatus];
 
     Alert.alert(
       `タスクを${actionLabel}`,
-      `このタスクを${actionLabel}しますか？`,
+      `このタスクを${actionLabel}か？`,
       [
         { text: 'キャンセル', style: 'cancel' },
         {
@@ -116,10 +123,19 @@ export default function MyTasksListScreen({ navigation }: any) {
           <ThemedText style={styles.taskTitle} numberOfLines={1}>
             {item.title}
           </ThemedText>
-          <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[item.status] + '20' }]}>
-            <ThemedText style={[styles.statusText, { color: STATUS_COLORS[item.status] }]}>
-              {STATUS_LABELS[item.status]}
-            </ThemedText>
+          <View style={styles.headerRight}>
+            <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[item.status] + '20' }]}>
+              <ThemedText style={[styles.statusText, { color: STATUS_COLORS[item.status] }]}>
+                {STATUS_LABELS[item.status]}
+              </ThemedText>
+            </View>
+            <TouchableOpacity
+              style={styles.deleteIconButton}
+              onPress={() => handleDeleteTask(item.id, item.title)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="trash-outline" size={18} color="#ef4444" />
+            </TouchableOpacity>
           </View>
         </View>
         <ThemedText style={[styles.taskMeta, { color: colors.subText }]}>
@@ -169,33 +185,62 @@ export default function MyTasksListScreen({ navigation }: any) {
           <ThemedText style={styles.actionButtonText}>編集</ThemedText>
         </TouchableOpacity>
 
-        {item.status !== 'draft' && (
+        {/* ステータス切り替えボタン */}
+        {item.status === 'draft' && (
           <TouchableOpacity
             style={[styles.actionButton, { borderColor: colors.border }]}
-            onPress={() => handleToggleStatus(item.id, item.status)}
+            onPress={() => handleChangeStatus(item.id, 'published')}
           >
-            <Ionicons
-              name={item.status === 'published' ? 'close-circle-outline' : 'checkmark-circle-outline'}
-              size={16}
-              color={item.status === 'published' ? '#ef4444' : '#10b981'}
-            />
-            <ThemedText
-              style={[
-                styles.actionButtonText,
-                { color: item.status === 'published' ? '#ef4444' : '#10b981' },
-              ]}
-            >
-              {item.status === 'published' ? '終了' : '再公開'}
+            <Ionicons name="checkmark-circle-outline" size={16} color="#10b981" />
+            <ThemedText style={[styles.actionButtonText, { color: '#10b981' }]}>
+              公開
             </ThemedText>
           </TouchableOpacity>
         )}
-
-        <TouchableOpacity
-          style={[styles.actionButton, styles.deleteButton]}
-          onPress={() => handleDeleteTask(item.id, item.title)}
-        >
-          <Ionicons name="trash-outline" size={16} color="#ef4444" />
-        </TouchableOpacity>
+        {item.status === 'published' && (
+          <TouchableOpacity
+            style={[styles.actionButton, { borderColor: colors.border }]}
+            onPress={() => handleChangeStatus(item.id, 'unpublished')}
+          >
+            <Ionicons name="eye-off-outline" size={16} color="#f59e0b" />
+            <ThemedText style={[styles.actionButtonText, { color: '#f59e0b' }]}>
+              非公開
+            </ThemedText>
+          </TouchableOpacity>
+        )}
+        {item.status === 'unpublished' && (
+          <TouchableOpacity
+            style={[styles.actionButton, { borderColor: colors.border }]}
+            onPress={() => handleChangeStatus(item.id, 'published')}
+          >
+            <Ionicons name="eye-outline" size={16} color="#10b981" />
+            <ThemedText style={[styles.actionButtonText, { color: '#10b981' }]}>
+              公開
+            </ThemedText>
+          </TouchableOpacity>
+        )}
+        {item.status !== 'closed' && item.status !== 'draft' && (
+          <TouchableOpacity
+            style={[styles.actionButton, { borderColor: colors.border }]}
+            onPress={() => handleChangeStatus(item.id, 'closed')}
+          >
+            <Ionicons name="close-circle-outline" size={16} color="#ef4444" />
+            <ThemedText style={[styles.actionButtonText, { color: '#ef4444' }]}>
+              終了
+            </ThemedText>
+          </TouchableOpacity>
+        )}
+        {item.status === 'closed' && (
+          <TouchableOpacity
+            style={[styles.actionButton, { borderColor: colors.border }]}
+            onPress={() => handleChangeStatus(item.id, 'published')}
+          >
+            <Ionicons name="refresh-outline" size={16} color="#10b981" />
+            <ThemedText style={[styles.actionButtonText, { color: '#10b981' }]}>
+              再公開
+            </ThemedText>
+          </TouchableOpacity>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -278,6 +323,11 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 8,
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   statusBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -286,6 +336,9 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontWeight: '500',
+  },
+  deleteIconButton: {
+    padding: 4,
   },
   taskMeta: {
     fontSize: 13,
@@ -304,6 +357,7 @@ const styles = StyleSheet.create({
   },
   taskActions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
@@ -321,11 +375,6 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: 13,
     fontWeight: '500',
-  },
-  deleteButton: {
-    marginLeft: 'auto',
-    borderColor: '#fecaca',
-    backgroundColor: '#fef2f2',
   },
   emptyContainer: {
     flex: 1,

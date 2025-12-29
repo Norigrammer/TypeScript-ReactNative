@@ -1,5 +1,5 @@
 export type ApplicationStatus = 'pending' | 'approved' | 'rejected' | 'completed';
-export type TaskStatus = 'draft' | 'published' | 'closed';
+export type TaskStatus = 'draft' | 'published' | 'unpublished' | 'closed';
 
 export interface Task {
   id: string;

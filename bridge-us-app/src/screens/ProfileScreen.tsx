@@ -11,6 +11,7 @@ import ThemedView from '../components/themed-view';
 import ThemedText from '../components/themed-text';
 import { Colors } from '../constants/theme';
 import { useAuth } from '../contexts/AuthContext';
+import { isStudentUser } from '../types/user';
 
 export default function ProfileScreen({ navigation }: any) {
   const { user, isLoggedIn, logout } = useAuth();
@@ -61,11 +62,11 @@ export default function ProfileScreen({ navigation }: any) {
         <View style={styles.avatarSection}>
           <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
             <ThemedText style={styles.avatarText}>
-              {user.name.charAt(0)}
+              {isStudentUser(user) ? user.name.charAt(0) : user.companyName.charAt(0)}
             </ThemedText>
           </View>
-          <ThemedText style={styles.name}>{user.name}</ThemedText>
-          {user.university && (
+          <ThemedText style={styles.name}>{isStudentUser(user) ? user.name : user.companyName}</ThemedText>
+          {isStudentUser(user) && user.university && (
             <ThemedText style={[styles.university, { color: colors.subText }]}>
               {user.university} {user.faculty}
             </ThemedText>
@@ -89,7 +90,7 @@ export default function ProfileScreen({ navigation }: any) {
         >
           <View style={styles.statItem}>
             <ThemedText style={[styles.statNumber, { color: colors.primary }]}>
-              {user.appliedTaskCount}
+              {isStudentUser(user) ? user.appliedTaskCount : 0}
             </ThemedText>
             <ThemedText style={[styles.statLabel, { color: colors.subText }]}>
               応募中
@@ -98,7 +99,7 @@ export default function ProfileScreen({ navigation }: any) {
           <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
           <View style={styles.statItem}>
             <ThemedText style={[styles.statNumber, { color: colors.primary }]}>
-              {user.completedTaskCount}
+              {isStudentUser(user) ? user.completedTaskCount : 0}
             </ThemedText>
             <ThemedText style={[styles.statLabel, { color: colors.subText }]}>
               完了済み
@@ -133,7 +134,7 @@ export default function ProfileScreen({ navigation }: any) {
             <ThemedText style={styles.infoValue}>{user.email}</ThemedText>
           </View>
 
-          {user.year && (
+          {isStudentUser(user) && user.year && (
             <View style={styles.infoRow}>
               <ThemedText style={[styles.infoLabel, { color: colors.subText }]}>
                 学年
@@ -142,7 +143,7 @@ export default function ProfileScreen({ navigation }: any) {
             </View>
           )}
 
-          {user.bio && (
+          {isStudentUser(user) && user.bio && (
             <View style={styles.infoRow}>
               <ThemedText style={[styles.infoLabel, { color: colors.subText }]}>
                 自己紹介

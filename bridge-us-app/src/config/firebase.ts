@@ -1,10 +1,17 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
-import Constants from 'expo-constants';
 
-const extra = (Constants?.expoConfig?.extra as any) || {};
-const extraFirebase = extra.firebase || {};
+// 設定取得: まず EXPO_PUBLIC_* 環境変数、足りない場合は app.json の extra.firebase をフォールバック
+let extraFirebase: any = {};
+try {
+  // dynamic import により型/依存問題を回避
+  const Constants = require('expo-constants').default;
+  extraFirebase = (Constants?.expoConfig?.extra?.firebase as any) || {};
+} catch (_e) {
+  // expo-constants が未導入でも動作継続（環境変数のみで初期化）
+  extraFirebase = {};
+}
 
 const apiKey = (process.env.EXPO_PUBLIC_FIREBASE_API_KEY as string) || extraFirebase.apiKey;
 const authDomain = (process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN as string) || extraFirebase.authDomain;

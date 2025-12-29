@@ -19,17 +19,22 @@ import { db } from '../config/firebase';
 import { Task, AppliedTask, ApplicationStatus } from '../types/task';
 
 /**
- * タスク一覧のリアルタイム購読
+ * タスク一覧のリアルタイム購読（公開中のタスクのみ）
  */
 export function subscribeTasks(
   userId: string | null,
   callback: (tasks: Task[]) => void
 ) {
   const ref = collection(db, 'tasks');
-  const q = query(ref, orderBy('createdAt', 'desc'));
+  // インデックス未作成時のフォールバック: 全件取得してクライアント側でフィルタリング
+  const unsubscribe = onSnapshot(ref, async (snapshot) => {
+    // 公開中のタスクのみをフィルタリング
+    const publishedDocs = snapshot.docs.filter((docSnap) => {
+      const data = docSnap.data();
+      return data.status === 'published';
+    });
 
-  const unsubscribe = onSnapshot(q, async (snapshot) => {
-    const tasksPromises = snapshot.docs.map(async (docSnap) => {
+    const tasksPromises = publishedDocs.map(async (docSnap) => {
       const data = docSnap.data();
       const taskId = docSnap.id;
       const categories = Array.isArray((data as any).categories)
@@ -68,10 +73,17 @@ export function subscribeTasks(
         status: data.status || 'published',
         applied,
         favorited,
+        createdAt: data.createdAt,
       } as Task;
     });
 
     const tasks = await Promise.all(tasksPromises);
+    // createdAtで降順ソート
+    tasks.sort((a, b) => {
+      const aTime = (a as any).createdAt?.toMillis?.() || 0;
+      const bTime = (b as any).createdAt?.toMillis?.() || 0;
+      return bTime - aTime;
+    });
     callback(tasks);
   });
 
@@ -79,14 +91,20 @@ export function subscribeTasks(
 }
 
 /**
- * タスク一覧を取得（一回限り）
+ * タスク一覧を取得（一回限り、公開中のタスクのみ）
  */
 export async function getTasks(userId: string | null): Promise<Task[]> {
   const ref = collection(db, 'tasks');
-  const q = query(ref, orderBy('createdAt', 'desc'));
-  const snapshot = await getDocs(q);
+  // インデックス未作成時のフォールバック: 全件取得してクライアント側でフィルタリング
+  const snapshot = await getDocs(ref);
 
-  const tasksPromises = snapshot.docs.map(async (docSnap) => {
+  // 公開中のタスクのみをフィルタリング
+  const publishedDocs = snapshot.docs.filter((docSnap) => {
+    const data = docSnap.data();
+    return data.status === 'published';
+  });
+
+  const tasksPromises = publishedDocs.map(async (docSnap) => {
     const data = docSnap.data();
     const taskId = docSnap.id;
     const categories = Array.isArray((data as any).categories)
@@ -124,10 +142,18 @@ export async function getTasks(userId: string | null): Promise<Task[]> {
       status: data.status || 'published',
       applied,
       favorited,
+      createdAt: data.createdAt,
     } as Task;
   });
 
-  return Promise.all(tasksPromises);
+  const tasks = await Promise.all(tasksPromises);
+  // createdAtで降順ソート
+  tasks.sort((a, b) => {
+    const aTime = (a as any).createdAt?.toMillis?.() || 0;
+    const bTime = (b as any).createdAt?.toMillis?.() || 0;
+    return bTime - aTime;
+  });
+  return tasks;
 }
 
 /**

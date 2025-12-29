@@ -19,6 +19,7 @@ import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import UserTypeSelectionScreen from '../screens/UserTypeSelectionScreen';
 import CompanyRegisterScreen from '../screens/CompanyRegisterScreen';
+import PasswordResetScreen from '../screens/PasswordResetScreen';
 import CompanyProfileScreen from '../screens/company/CompanyProfileScreen';
 import CompanyEditProfileScreen from '../screens/company/CompanyEditProfileScreen';
 import CompanyProfileViewScreen from '../screens/CompanyProfileViewScreen';
@@ -104,6 +105,11 @@ function AuthStackNavigator() {
         name="CompanyRegister"
         component={CompanyRegisterScreen}
         options={{ title: '新規登録（企業）' }}
+      />
+      <AuthStack.Screen
+        name="PasswordReset"
+        component={PasswordResetScreen}
+        options={{ title: 'パスワード再設定' }}
       />
     </AuthStack.Navigator>
   );

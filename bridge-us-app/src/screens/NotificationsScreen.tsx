@@ -139,6 +139,20 @@ export default function NotificationsScreen() {
     );
   }
 
+  // 空状態（チャット画面と同等の中央配置）
+  if (notifications.length === 0) {
+    return (
+      <ThemedView style={styles.centerContainer}>
+        <Ionicons
+          name="notifications-outline"
+          size={64}
+          color={colors.subText}
+        />
+        <ThemedText style={styles.emptyTitle}>通知はありません</ThemedText>
+      </ThemedView>
+    );
+  }
+
   return (
     <ThemedView style={styles.container}>
       {/* ヘッダー */}
@@ -162,12 +176,6 @@ export default function NotificationsScreen() {
         contentContainerStyle={styles.listContent}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <ThemedText style={styles.emptyIcon}>🔔</ThemedText>
-            <ThemedText style={styles.emptyText}>通知はありません</ThemedText>
-          </View>
         }
         renderItem={({ item }) => (
           <TouchableOpacity
@@ -227,6 +235,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  centerContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -245,16 +259,10 @@ const styles = StyleSheet.create({
   listContent: {
     paddingVertical: 8,
   },
-  emptyContainer: {
-    alignItems: 'center',
-    paddingTop: 60,
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: 16,
-  },
-  emptyText: {
-    fontSize: 16,
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 16,
   },
   notificationCard: {
     paddingVertical: 14,

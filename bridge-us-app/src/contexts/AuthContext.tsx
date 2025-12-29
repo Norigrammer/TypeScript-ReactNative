@@ -7,6 +7,7 @@ import {
   createUserWithEmailAndPassword,
   updateProfile,
   signOut,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import {
   createUserDocument,
@@ -21,12 +22,13 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isLoggedIn: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
   registerStudent: (data: StudentRegisterInput) => Promise<void>;
   registerCompany: (data: CompanyRegisterInput) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (updates: Partial<StudentUser> | Partial<CompanyUser>) => Promise<void>;
   refreshUser: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
 }
 
 // 学生登録用の入力データ（パスワード含む）
@@ -94,9 +96,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return unsubscribe;
   }, [fetchAndSetUser]);
 
-  const login = useCallback(async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string): Promise<User> => {
     const cred = await signInWithEmailAndPassword(auth, email, password);
     await fetchAndSetUser(cred.user.uid);
+    // 返却用に最新ユーザーデータを取得（レガシー対策を含む）
+    const userData = await getUserById(cred.user.uid);
+    if (userData) return userData;
+    const firebaseUser = auth.currentUser;
+    const legacyUser: StudentUser = {
+      id: firebaseUser?.uid || cred.user.uid,
+      email: firebaseUser?.email || '',
+      userType: 'student',
+      name: firebaseUser?.displayName || (firebaseUser?.email ? firebaseUser.email.split('@')[0] : 'ユーザー'),
+      appliedTaskCount: 0,
+      completedTaskCount: 0,
+    };
+    return legacyUser;
   }, [fetchAndSetUser]);
 
   const registerStudent = useCallback(async (data: StudentRegisterInput) => {
@@ -174,6 +189,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [fetchAndSetUser]);
 
+  const resetPassword = useCallback(async (email: string) => {
+    await sendPasswordResetEmail(auth, email);
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -186,6 +205,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         updateUser,
         refreshUser,
+        resetPassword,
       }}
     >
       {children}

@@ -11,6 +11,7 @@ export interface StudentUser {
   year?: number;
   bio?: string;
   avatarUrl?: string;
+  avatarId?: number;
   appliedTaskCount: number;
   completedTaskCount: number;
 }
@@ -24,6 +25,7 @@ export interface CompanyUser {
   representativeName: string;
   description?: string;
   logoUrl?: string;
+  avatarId?: number;
   publishedTaskCount: number;
 }
 

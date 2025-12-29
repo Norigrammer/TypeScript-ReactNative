@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   StyleSheet,
   ScrollView,
@@ -10,7 +10,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Modal,
 } from 'react-native';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import ThemedView from '../../components/themed-view';
 import ThemedText from '../../components/themed-text';
@@ -44,6 +46,8 @@ export default function CreateTaskScreen({ navigation }: any) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [deadline, setDeadline] = useState('');
+  const [deadlineDate, setDeadlineDate] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [reward, setReward] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -84,6 +88,32 @@ export default function CreateTaskScreen({ navigation }: any) {
       Alert.alert('エラー', 'タスクの作成に失敗しました');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const formatDate = (d: Date) => {
+    const y = d.getFullYear();
+    const m = `${d.getMonth() + 1}`.padStart(2, '0');
+    const day = `${d.getDate()}`.padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  const openDatePicker = () => {
+    const base = deadline && /^\d{4}-\d{2}-\d{2}$/.test(deadline)
+      ? new Date(`${deadline}T00:00:00`)
+      : new Date();
+    setDeadlineDate(base);
+    setShowDatePicker(true);
+  };
+
+  const onChangeDate = (event: DateTimePickerEvent, selected?: Date) => {
+    if (Platform.OS === 'android') {
+      if (event.type === 'set' && selected) {
+        setDeadline(formatDate(selected));
+      }
+      setShowDatePicker(false);
+    } else {
+      if (selected) setDeadlineDate(selected);
     }
   };
 
@@ -182,15 +212,16 @@ export default function CreateTaskScreen({ navigation }: any) {
 
             <View style={styles.inputGroup}>
               <ThemedText style={[styles.label, { color: colors.subText }]}>締切日</ThemedText>
-              <TextInput
-                style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
-                value={deadline}
-                onChangeText={setDeadline}
-                placeholder="例: 2025-01-31"
-                placeholderTextColor={colors.subText}
-              />
-              <ThemedText style={[styles.hint, { color: colors.subText }]}>
-                YYYY-MM-DD形式で入力
+              <TouchableOpacity activeOpacity={0.8} onPress={openDatePicker}>
+                <View style={[styles.input, styles.inputWithIcon, { backgroundColor: colors.card, borderColor: colors.border }]}> 
+                  <ThemedText style={{ color: deadline ? colors.text : colors.subText, fontSize: 16 }}>
+                    {deadline || 'カレンダーから選択'}
+                  </ThemedText>
+                  <Ionicons name="calendar-outline" size={20} color={colors.subText} />
+                </View>
+              </TouchableOpacity>
+              <ThemedText style={[styles.hint, { color: colors.subText }]}> 
+                タップしてカレンダーを開く（YYYY-MM-DD）
               </ThemedText>
             </View>
           </View>
@@ -246,6 +277,49 @@ export default function CreateTaskScreen({ navigation }: any) {
           </View>
         </View>
       </KeyboardAvoidingView>
+
+      {/* カレンダーモーダル */}
+      {showDatePicker && (
+        Platform.OS === 'android' ? (
+          <DateTimePicker
+            value={deadlineDate || new Date()}
+            mode="date"
+            display="calendar"
+            onChange={onChangeDate}
+          />
+        ) : (
+          <Modal
+            visible
+            animationType="slide"
+            transparent
+            onRequestClose={() => setShowDatePicker(false)}
+          >
+            <View style={styles.modalBackdrop}>
+              <View style={[styles.modalSheet, { backgroundColor: colors.background }]}> 
+                <View style={styles.modalHeader}>
+                  <ThemedText style={styles.modalTitle}>締切日を選択</ThemedText>
+                  <TouchableOpacity
+                    onPress={() => {
+                      const picked = deadlineDate || new Date();
+                      setDeadline(formatDate(picked));
+                      setShowDatePicker(false);
+                    }}
+                  >
+                    <ThemedText style={[styles.modalDone, { color: COMPANY_PRIMARY }]}>完了</ThemedText>
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  value={deadlineDate || new Date()}
+                  mode="date"
+                  display="inline"
+                  onChange={onChangeDate}
+                  style={{ alignSelf: 'stretch' }}
+                />
+              </View>
+            </View>
+          </Modal>
+        )
+      )}
     </ThemedView>
   );
 }
@@ -282,6 +356,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     fontSize: 16,
     borderWidth: 1,
+  },
+  inputWithIcon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   textArea: {
     minHeight: 120,
@@ -358,5 +437,30 @@ const styles = StyleSheet.create({
     right: 0,
     padding: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    padding: 12,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+    paddingBottom: 8,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  modalDone: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

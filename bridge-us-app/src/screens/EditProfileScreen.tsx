@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   useColorScheme,
+  Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +19,12 @@ import ThemedView from '../components/themed-view';
 import ThemedText from '../components/themed-text';
 import { Colors } from '../constants/theme';
 import { useAuth } from '../contexts/AuthContext';
+import { isStudentUser } from '../types/user';
+import {
+  STUDENT_AVATARS,
+  getStudentAvatarSource,
+  DEFAULT_STUDENT_AVATAR_ID,
+} from '../constants/avatars';
 
 const YEAR_OPTIONS = [1, 2, 3, 4, 5, 6];
 
@@ -30,18 +37,20 @@ export default function EditProfileScreen() {
   const [faculty, setFaculty] = useState('');
   const [year, setYear] = useState<number | undefined>(undefined);
   const [bio, setBio] = useState('');
+  const [avatarId, setAvatarId] = useState<number>(DEFAULT_STUDENT_AVATAR_ID);
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   const navigation = useNavigation();
 
-  useEffect(() => {
-    if (user) {
+    useEffect(() => {
+    if (user && isStudentUser(user)) {
       setName(user.name);
       setEmail(user.email);
       setUniversity(user.university || '');
       setFaculty(user.faculty || '');
       setYear(user.year);
       setBio(user.bio || '');
+      setAvatarId(user.avatarId ?? DEFAULT_STUDENT_AVATAR_ID);
     }
   }, [user]);
 
@@ -57,13 +66,14 @@ export default function EditProfileScreen() {
 
     setSaving(true);
     try {
-      updateUser({
+      await updateUser({
         name: name.trim(),
         email: email.trim(),
         university: university.trim() || undefined,
         faculty: faculty.trim() || undefined,
         year,
         bio: bio.trim() || undefined,
+        avatarId,
       });
       Alert.alert('完了', 'プロフィールを更新しました', [
         { text: 'OK', onPress: () => navigation.goBack() },
@@ -74,6 +84,41 @@ export default function EditProfileScreen() {
       setSaving(false);
     }
   };
+
+  
+  const renderAvatarSelector = () => (
+    <View style={styles.avatarSection}>
+      <View style={styles.currentAvatarContainer}>
+        <Image
+          source={getStudentAvatarSource(avatarId)}
+          style={styles.currentAvatar}
+        />
+      </View>
+      <ThemedText style={styles.avatarHint}>アイコンを選択</ThemedText>
+      <View style={styles.avatarGrid}>
+        {STUDENT_AVATARS.map((avatar) => (
+          <TouchableOpacity
+            key={avatar.id}
+            style={[
+              styles.avatarOption,
+              {
+                borderColor: avatarId === avatar.id ? colors.tint : colors.border,
+                borderWidth: avatarId === avatar.id ? 3 : 1,
+              },
+            ]}
+            onPress={() => setAvatarId(avatar.id)}
+          >
+            <Image source={avatar.source} style={styles.avatarOptionImage} />
+            {avatarId === avatar.id && (
+              <View style={[styles.avatarCheckmark, { backgroundColor: colors.tint }]}>
+                <Ionicons name="checkmark" size={12} color="#fff" />
+              </View>
+            )}
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
 
   const renderYearSelector = () => (
     <View style={styles.yearContainer}>
@@ -121,6 +166,11 @@ export default function EditProfileScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+                    <View style={styles.formSection}>
+            <ThemedText style={styles.label}>プロフィールアイコン</ThemedText>
+            {renderAvatarSelector()}
+          </View>
+
           <View style={styles.formSection}>
             <ThemedText style={styles.label}>名前 *</ThemedText>
             <TextInput
@@ -325,9 +375,52 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     gap: 8,
   },
-  saveButtonText: {
+    saveButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  avatarSection: {
+    alignItems: 'center',
+  },
+  currentAvatarContainer: {
+    marginBottom: 12,
+  },
+  currentAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+  },
+  avatarHint: {
+    fontSize: 12,
+    opacity: 0.6,
+    marginBottom: 12,
+  },
+  avatarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  avatarOption: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  avatarOptionImage: {
+    width: '100%',
+    height: '100%',
+  },
+  avatarCheckmark: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

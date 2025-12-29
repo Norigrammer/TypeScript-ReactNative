@@ -19,7 +19,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { isCompanyUser } from '../types/user';
 
 export default function LoginScreen({ navigation }: any) {
-  const { login, user } = useAuth();
+  const { login, user, resetPassword } = useAuth();
 
   const handleSkip = () => {
     navigation.dispatch(
@@ -49,11 +49,38 @@ export default function LoginScreen({ navigation }: any) {
 
     setLoading(true);
     try {
-      await login(email.trim(), password);
-      // ログイン後、ユーザー情報はAuthContextで管理されるため
-      // RootNavigatorが自動的に適切な画面にルーティングする
-    } catch (err) {
-      Alert.alert('ログインエラー', 'メールアドレスまたはパスワードが正しくありません');
+      const loggedInUser = await login(email.trim(), password);
+      // ユーザー種別に応じて適切なメインタブへ遷移
+      const nextRoute = isCompanyUser(loggedInUser) ? 'CompanyMainTabs' : 'StudentMainTabs';
+      navigation.dispatch(
+        CommonActions.reset({ index: 0, routes: [{ name: nextRoute }] })
+      );
+    } catch (err: any) {
+      const code = err?.code as string | undefined;
+      let message = 'メールアドレスまたはパスワードが正しくありません';
+      if (code) {
+        switch (code) {
+          case 'auth/invalid-email':
+            message = 'メールアドレスの形式が正しくありません';
+            break;
+          case 'auth/user-not-found':
+            message = 'このメールアドレスのアカウントは登録されていません';
+            break;
+          case 'auth/wrong-password':
+            message = 'パスワードが正しくありません';
+            break;
+          case 'auth/too-many-requests':
+            message = '試行回数が多すぎます。しばらく時間を置いてから再試行してください';
+            break;
+          case 'auth/network-request-failed':
+            message = 'ネットワークエラーが発生しました。接続を確認して再試行してください';
+            break;
+          default:
+            message = 'ログインに失敗しました: ' + code;
+        }
+      }
+      Alert.alert('ログインエラー', message);
+    } finally {
       setLoading(false);
     }
   };
@@ -117,7 +144,10 @@ export default function LoginScreen({ navigation }: any) {
               </View>
             </View>
 
-            <TouchableOpacity style={styles.forgotPassword}>
+            <TouchableOpacity
+              style={styles.forgotPassword}
+              onPress={() => navigation.navigate('PasswordReset')}
+            >
               <ThemedText style={[styles.forgotPasswordText, { color: colors.primary }]}>
                 パスワードをお忘れですか？
               </ThemedText>

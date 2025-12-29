@@ -10,7 +10,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Modal,
 } from 'react-native';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import ThemedView from '../../components/themed-view';
 import ThemedText from '../../components/themed-text';
@@ -56,6 +58,8 @@ export default function EditTaskScreen({ route, navigation }: Props) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [deadline, setDeadline] = useState('');
+  const [deadlineDate, setDeadlineDate] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [reward, setReward] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [status, setStatus] = useState<TaskStatus>('published');
@@ -153,6 +157,32 @@ export default function EditTaskScreen({ route, navigation }: Props) {
     }
   };
 
+  const formatDate = (d: Date) => {
+    const y = d.getFullYear();
+    const m = `${d.getMonth() + 1}`.padStart(2, '0');
+    const day = `${d.getDate()}`.padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  const openDatePicker = () => {
+    const base = deadline && /^\d{4}-\d{2}-\d{2}$/.test(deadline)
+      ? new Date(`${deadline}T00:00:00`)
+      : new Date();
+    setDeadlineDate(base);
+    setShowDatePicker(true);
+  };
+
+  const onChangeDate = (event: DateTimePickerEvent, selected?: Date) => {
+    if (Platform.OS === 'android') {
+      if (event.type === 'set' && selected) {
+        setDeadline(formatDate(selected));
+      }
+      setShowDatePicker(false);
+    } else {
+      if (selected) setDeadlineDate(selected);
+    }
+  };
+
   return (
     <ThemedView style={styles.container}>
       <KeyboardAvoidingView
@@ -169,30 +199,41 @@ export default function EditTaskScreen({ route, navigation }: Props) {
           {/* ステータス */}
           <View style={styles.section}>
             <ThemedText style={styles.sectionTitle}>ステータス</ThemedText>
-            <View style={styles.statusContainer}>
-              {(['draft', 'published', 'closed'] as TaskStatus[]).map((s) => (
+            <View style={styles.statusGrid}>
+              {([
+                { key: 'draft', label: '下書き', color: '#6b7280' },
+                { key: 'published', label: '公開', color: '#10b981' },
+                { key: 'unpublished', label: '非公開', color: '#f59e0b' },
+                { key: 'closed', label: '終了', color: '#ef4444' },
+              ] as { key: TaskStatus; label: string; color: string }[]).map((s) => (
                 <TouchableOpacity
-                  key={s}
+                  key={s.key}
                   style={[
                     styles.statusButton,
                     {
-                      backgroundColor: status === s ? COMPANY_PRIMARY : colors.card,
-                      borderColor: status === s ? COMPANY_PRIMARY : colors.border,
+                      backgroundColor: status === s.key ? s.color : colors.card,
+                      borderColor: status === s.key ? s.color : colors.border,
                     },
                   ]}
-                  onPress={() => setStatus(s)}
+                  onPress={() => setStatus(s.key)}
                 >
                   <ThemedText
                     style={[
                       styles.statusButtonText,
-                      { color: status === s ? '#ffffff' : colors.text },
+                      { color: status === s.key ? '#ffffff' : colors.text },
                     ]}
                   >
-                    {s === 'draft' ? '下書き' : s === 'published' ? '公開中' : '終了'}
+                    {s.label}
                   </ThemedText>
                 </TouchableOpacity>
               ))}
             </View>
+            <ThemedText style={[styles.statusHint, { color: colors.subText }]}>
+              {status === 'draft' && '作成中のタスクです。学生には表示されません。'}
+              {status === 'published' && '学生に公開され、応募を受け付けます。'}
+              {status === 'unpublished' && '一時的に非公開。学生には表示されません。'}
+              {status === 'closed' && '募集を終了しました。再公開も可能です。'}
+            </ThemedText>
           </View>
 
           {/* タイトル */}
@@ -277,27 +318,19 @@ export default function EditTaskScreen({ route, navigation }: Props) {
 
             <View style={styles.inputGroup}>
               <ThemedText style={[styles.label, { color: colors.subText }]}>締切日</ThemedText>
-              <TextInput
-                style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
-                value={deadline}
-                onChangeText={setDeadline}
-                placeholder="例: 2025-01-31"
-                placeholderTextColor={colors.subText}
-              />
-              <ThemedText style={[styles.hint, { color: colors.subText }]}>
-                YYYY-MM-DD形式で入力
+              <TouchableOpacity activeOpacity={0.8} onPress={openDatePicker}>
+                <View style={[styles.input, styles.inputWithIcon, { backgroundColor: colors.card, borderColor: colors.border }]}> 
+                  <ThemedText style={{ color: deadline ? colors.text : colors.subText, fontSize: 16 }}>
+                    {deadline || 'カレンダーから選択'}
+                  </ThemedText>
+                  <Ionicons name="calendar-outline" size={20} color={colors.subText} />
+                </View>
+              </TouchableOpacity>
+              <ThemedText style={[styles.hint, { color: colors.subText }]}> 
+                タップしてカレンダーを開く（YYYY-MM-DD）
               </ThemedText>
             </View>
           </View>
-
-          {/* キャンセル */}
-          <TouchableOpacity
-            style={styles.cancelButton}
-            onPress={() => navigation.goBack()}
-            activeOpacity={0.7}
-          >
-            <ThemedText style={[styles.cancelButtonText, { color: colors.subText }]}>キャンセル</ThemedText>
-          </TouchableOpacity>
         </ScrollView>
         {/* 下部固定ボタン */}
         <View
@@ -306,7 +339,7 @@ export default function EditTaskScreen({ route, navigation }: Props) {
             {
               backgroundColor: colors.background,
               borderTopColor: colors.border,
-              paddingBottom: insets.bottom + 16,
+              paddingBottom: insets.bottom + 8,
             },
           ]}
         >
@@ -322,8 +355,60 @@ export default function EditTaskScreen({ route, navigation }: Props) {
               <ThemedText style={styles.saveButtonText}>変更を保存</ThemedText>
             )}
           </TouchableOpacity>
+
+          {/* キャンセル（小さめ、保存の下） */}
+          <TouchableOpacity
+            style={styles.cancelSmallButton}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+          >
+            <ThemedText style={[styles.cancelSmallText, { color: colors.subText }]}>キャンセル</ThemedText>
+          </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      {/* カレンダーモーダル */}
+      {showDatePicker && (
+        Platform.OS === 'android' ? (
+          <DateTimePicker
+            value={deadlineDate || new Date()}
+            mode="date"
+            display="calendar"
+            onChange={onChangeDate}
+          />
+        ) : (
+          <Modal
+            visible
+            animationType="slide"
+            transparent
+            onRequestClose={() => setShowDatePicker(false)}
+          >
+            <View style={styles.modalBackdrop}>
+              <View style={[styles.modalSheet, { backgroundColor: colors.background }]}> 
+                <View style={styles.modalHeader}>
+                  <ThemedText style={styles.modalTitle}>締切日を選択</ThemedText>
+                  <TouchableOpacity
+                    onPress={() => {
+                      const picked = deadlineDate || new Date();
+                      setDeadline(formatDate(picked));
+                      setShowDatePicker(false);
+                    }}
+                  >
+                    <ThemedText style={[styles.modalDone, { color: COMPANY_PRIMARY }]}>完了</ThemedText>
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  value={deadlineDate || new Date()}
+                  mode="date"
+                  display="inline"
+                  onChange={onChangeDate}
+                  style={{ alignSelf: 'stretch' }}
+                />
+              </View>
+            </View>
+          </Modal>
+        )
+      )}
     </ThemedView>
   );
 }
@@ -377,6 +462,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
   },
+  inputWithIcon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   textArea: {
     minHeight: 120,
     borderRadius: 10,
@@ -389,12 +479,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
   },
-  statusContainer: {
+  statusGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
   },
   statusButton: {
-    flex: 1,
+    width: '47%',
     paddingVertical: 12,
     borderRadius: 8,
     borderWidth: 1,
@@ -403,6 +494,10 @@ const styles = StyleSheet.create({
   statusButtonText: {
     fontSize: 14,
     fontWeight: '500',
+  },
+  statusHint: {
+    fontSize: 12,
+    marginTop: 12,
   },
   categoryContainer: {
     flexDirection: 'row',
@@ -431,13 +526,14 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
   },
-  cancelButton: {
+  cancelSmallButton: {
     alignItems: 'center',
-    marginTop: 16,
-    padding: 12,
+    marginTop: 8,
+    paddingVertical: 8,
   },
-  cancelButtonText: {
-    fontSize: 15,
+  cancelSmallText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   footer: {
     position: 'absolute',
@@ -446,5 +542,30 @@ const styles = StyleSheet.create({
     right: 0,
     padding: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    padding: 12,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+    paddingBottom: 8,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  modalDone: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

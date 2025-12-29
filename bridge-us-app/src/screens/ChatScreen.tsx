@@ -18,6 +18,7 @@ import { Colors } from '../constants/theme';
 import { subscribeChatRooms } from '../api/chat-firebase';
 import { ChatRoom } from '../types/chat';
 import { useAuth } from '../contexts/AuthContext';
+import { isCompanyUser } from '../types/user';
 
 type RootStackParamList = {
   ChatRoom: { chatRoomId: string; title: string };
@@ -197,6 +198,7 @@ export default function ChatScreen() {
   }
 
   if (chatRooms.length === 0) {
+    const isCompany = user && isCompanyUser(user);
     return (
       <ThemedView style={styles.centerContainer}>
         <Ionicons
@@ -206,7 +208,9 @@ export default function ChatScreen() {
         />
         <ThemedText style={styles.emptyTitle}>チャットはありません</ThemedText>
         <Text style={[styles.emptyMessage, { color: colors.tabIconDefault }]}>
-          タスクに応募すると、企業とのチャットが始まります
+          {isCompany
+            ? '応募者を承認すると、学生とのチャットが始まります'
+            : 'タスクに応募すると、企業とのチャットが始まります'}
         </Text>
       </ThemedView>
     );

@@ -54,6 +54,9 @@ export default function TasksListScreen({ navigation }: any) {
     if (!tasks) return [];
 
     return tasks.filter((task) => {
+      // 公開中のタスクのみ表示（インデックス未作成時のフォールバック）
+      if (task.status !== 'published') return false;
+
       const matchesSearch =
         searchQuery === '' ||
         task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||

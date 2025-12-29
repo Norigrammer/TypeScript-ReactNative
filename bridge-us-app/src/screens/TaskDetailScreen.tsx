@@ -17,7 +17,7 @@ import { getTaskById, applyToTask, unapplyTask, addFavorite, removeFavorite } fr
 import { Task } from '../types/task';
 import { Colors } from '../constants/theme';
 import { useAuth } from '../contexts/AuthContext';
-import { isStudentUser } from '../types/user';
+import { isStudentUser, isCompanyUser } from '../types/user';
 
 export default function TaskDetailScreen({ route }: any) {
   const { isLoggedIn, user } = useAuth();
@@ -118,20 +118,25 @@ export default function TaskDetailScreen({ route }: any) {
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.headerRow}>
-          {(task.categories && task.categories.length > 0 ? task.categories : (task.category ? [task.category] : [])).map((cat) => (
-            <View key={cat} style={[styles.categoryBadge, { backgroundColor: colors.primary + '20' }]}>
-              <ThemedText style={[styles.categoryText, { color: colors.primary }]}>
-                {cat}
-              </ThemedText>
-            </View>
-          ))}
-          <TouchableOpacity onPress={onToggleFavorite} style={styles.favoriteButton}>
-            <Ionicons
-              name={task.favorited ? 'heart' : 'heart-outline'}
-              size={28}
-              color={task.favorited ? '#ef4444' : colors.subText}
-            />
-          </TouchableOpacity>
+          <View style={styles.categoriesContainer}>
+            {(task.categories && task.categories.length > 0 ? task.categories : (task.category ? [task.category] : [])).map((cat) => (
+              <View key={cat} style={[styles.categoryBadge, { backgroundColor: colors.primary + '20' }]}>
+                <ThemedText style={[styles.categoryText, { color: colors.primary }]}>
+                  {cat}
+                </ThemedText>
+              </View>
+            ))}
+          </View>
+          {/* お気に入りボタンは学生ユーザーのみ表示 */}
+          {(!user || !isCompanyUser(user)) && (
+            <TouchableOpacity onPress={onToggleFavorite} style={styles.favoriteButton}>
+              <Ionicons
+                name={task.favorited ? 'heart' : 'heart-outline'}
+                size={28}
+                color={task.favorited ? '#ef4444' : colors.subText}
+              />
+            </TouchableOpacity>
+          )}
         </View>
 
         <ThemedText style={styles.title}>{task.title}</ThemedText>
@@ -190,7 +195,15 @@ export default function TaskDetailScreen({ route }: any) {
       </ScrollView>
 
       <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
-        {isLoggedIn ? (
+        {/* 企業が自社タスクを閲覧している場合 */}
+        {isLoggedIn && user && isCompanyUser(user) && user.id === task.companyId ? (
+          <View style={[styles.ownerBanner, { backgroundColor: '#8b5cf6' + '15' }]}>
+            <Ionicons name="briefcase" size={20} color="#8b5cf6" />
+            <ThemedText style={[styles.ownerText, { color: '#8b5cf6' }]}>
+              これはあなたが作成したタスクです
+            </ThemedText>
+          </View>
+        ) : isLoggedIn ? (
           <TouchableOpacity
             style={[
               styles.applyButton,
@@ -268,6 +281,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+  },
+  categoriesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 8,
+    flexShrink: 1,
+    marginRight: 12,
   },
   categoryBadge: {
     paddingHorizontal: 12,
@@ -355,5 +376,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: 'center',
     marginBottom: 12,
+  },
+  ownerBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    borderRadius: 12,
+    gap: 8,
+  },
+  ownerText: {
+    fontSize: 15,
+    fontWeight: '600',
   },
 });

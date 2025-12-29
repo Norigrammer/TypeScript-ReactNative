@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ThemedView from '../../components/themed-view';
@@ -17,6 +18,11 @@ import ThemedText from '../../components/themed-text';
 import { Colors } from '../../constants/theme';
 import { useAuth } from '../../contexts/AuthContext';
 import { isCompanyUser } from '../../types/user';
+import {
+  COMPANY_AVATARS,
+  getCompanyAvatarSource,
+  DEFAULT_COMPANY_AVATAR_ID,
+} from '../../constants/avatars';
 
 const COMPANY_PRIMARY = '#8b5cf6';
 
@@ -34,6 +40,7 @@ export default function CompanyEditProfileScreen({ navigation }: any) {
   const [representativeName, setRepresentativeName] = useState(user.representativeName);
   const [description, setDescription] = useState(user.description ?? '');
   const [loading, setLoading] = useState(false);
+  const [avatarId, setAvatarId] = useState<number>(user.avatarId ?? DEFAULT_COMPANY_AVATAR_ID);
 
   const validateForm = (): string | null => {
     if (!companyName.trim()) return '会社名を入力してください';
@@ -55,6 +62,7 @@ export default function CompanyEditProfileScreen({ navigation }: any) {
         companyName: companyName.trim(),
         representativeName: representativeName.trim(),
         description: description.trim() || undefined,
+        avatarId,
       });
       Alert.alert('保存完了', 'プロフィールを更新しました', [
         { text: 'OK', onPress: () => navigation.goBack() },
@@ -78,14 +86,35 @@ export default function CompanyEditProfileScreen({ navigation }: any) {
         >
           {/* アバターセクション */}
           <View style={styles.avatarSection}>
-            <View style={[styles.avatar, { backgroundColor: COMPANY_PRIMARY }]}>
-              <Ionicons name="business" size={36} color="#fff" />
+            <View style={styles.currentAvatarContainer}>
+              <Image
+                source={getCompanyAvatarSource(avatarId)}
+                style={styles.currentAvatar}
+              />
             </View>
-            <TouchableOpacity style={styles.changeAvatarButton}>
-              <ThemedText style={[styles.changeAvatarText, { color: COMPANY_PRIMARY }]}>
-                ロゴを変更
-              </ThemedText>
-            </TouchableOpacity>
+            <ThemedText style={styles.avatarHint}>アイコンを選択</ThemedText>
+            <View style={styles.avatarGrid}>
+              {COMPANY_AVATARS.map((avatar) => (
+                <TouchableOpacity
+                  key={avatar.id}
+                  style={[
+                    styles.avatarOption,
+                    {
+                      borderColor: avatarId === avatar.id ? COMPANY_PRIMARY : colors.border,
+                      borderWidth: avatarId === avatar.id ? 3 : 1,
+                    },
+                  ]}
+                  onPress={() => setAvatarId(avatar.id)}
+                >
+                  <Image source={avatar.source} style={styles.avatarOptionImage} />
+                  {avatarId === avatar.id && (
+                    <View style={[styles.avatarCheckmark, { backgroundColor: COMPANY_PRIMARY }]}>
+                      <Ionicons name="checkmark" size={12} color="#fff" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
 
           {/* 必須項目 */}
@@ -181,13 +210,53 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 32,
   },
-  avatar: {
+    avatar: {
     width: 100,
     height: 100,
     borderRadius: 50,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
+  },
+  currentAvatarContainer: {
+    marginBottom: 12,
+  },
+  currentAvatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+  },
+  avatarHint: {
+    fontSize: 12,
+    opacity: 0.6,
+    marginBottom: 12,
+  },
+  avatarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  avatarOption: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  avatarOptionImage: {
+    width: '100%',
+    height: '100%',
+  },
+  avatarCheckmark: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   changeAvatarButton: {
     padding: 8,
