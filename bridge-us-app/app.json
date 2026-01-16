@@ -41,6 +41,9 @@
         "appId": "1:934819118286:web:1f8bcd6bd4b9f9157ea49f",
         "measurementId": "G-TZ88N6H24W"
       }
-    }
+    },
+    "plugins": [
+      "@react-native-community/datetimepicker"
+    ]
   }
 }
