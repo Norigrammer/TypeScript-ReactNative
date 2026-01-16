@@ -1,8 +1,12 @@
-# Bridge Us App
+<h1 align="center">Bridge Us App</h1>
 
 iOS/Android 向けクロスプラットフォームアプリ（Expo + TypeScript）
 
-企業の抱える簡単なタスクを社会進出にモヤモヤを抱いている大学生が主体的に参加して消化することで、企業はタスクの消化を、大学生は社会進出への前向きな体験を得られるモバイルアプリケーションです。
+企業の抱える簡単なタスクを社会進出にモヤモヤを抱いている大学生が主体的に参加して消化することで、<br>
+企業はタスクの消化を、大学生は社会進出への前向きな体験を得られるモバイルアプリケーションです。
+
+参考画像: Bridge Us App - アプリ画面
+<img width="914" height="507" alt="Bridge Us App_アプリ画面" src="https://github.com/user-attachments/assets/851a36e3-e954-4537-b7e3-881a0513562d" />
 
 ## ディレクトリ構成
 
