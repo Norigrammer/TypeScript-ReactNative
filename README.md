@@ -1,6 +1,9 @@
-# Bridge Us
+<h1 align="center">Bridge Us App</h1>
 
 企業と大学生をつなぐタスクマッチングプラットフォーム
+
+参考画像: Bridge Us App - アプリ画面
+<img width="914" height="507" alt="Bridge Us App_アプリ画面" src="https://github.com/user-attachments/assets/851a36e3-e954-4537-b7e3-881a0513562d" />
 
 ## 概要
 
