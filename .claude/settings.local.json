@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(npm run dev)",
+      "Bash(npm run build)",
+      "Bash(npx tsc:*)",
+      "Bash(npm install:*)",
+      "Bash(node scripts/convert-icons.js:*)",
+      "Bash(python3 -c \"\nimport base64\ncontent = ''''''aW1wb3J0IFJlYWN0LCB7IHVzZVN0YXRlLCB1c2VFZmZlY3QgfSBmcm9tICdyZWFjdCc7CmltcG9ydCB7CiAgVmlldywKICBUZXh0LAogIFN0eWxlU2hlZXQsCiAgVGV4dElucHV0LAogIFRvdWNoYWJsZU9wYWNpdHksCiAgU2Nyb2xsVmlldywKICBBY3Rpdml0eUluZGljYXRvciwKICBBbGVydCwKICBLZXlib2FyZEF2b2lkaW5nVmlldywKICBQbGF0Zm9ybSwKICB1c2VDb2xvclNjaGVtZSwKICBJbWFnZSwKfSBmcm9tICdyZWFjdC1uYXRpdmUnOwppbXBvcnQgeyB1c2VOYXZpZ2F0aW9uIH0gZnJvbSAnQHJlYWN0LW5hdmlnYXRpb24vbmF0aXZlJzsKaW1wb3J0IHsgSW9uaWNvbnMgfSBmcm9tICdAZXhwby92ZWN0b3ItaWNvbnMnOwppbXBvcnQgVGhlbWVkVmlldyBmcm9tICcuLi9jb21wb25lbnRzL3RoZW1lZC12aWV3JzsKaW1wb3J0IFRoZW1lZFRleHQgZnJvbSAnLi4vY29tcG9uZW50cy90aGVtZWQtdGV4dCc7CmltcG9ydCB7IENvbG9ycyB9IGZyb20gJy4uL2NvbnN0YW50cy90aGVtZSc7CmltcG9ydCB7IHVzZUF1dGggfSBmcm9tICcuLi9jb250ZXh0cy9BdXRoQ29udGV4dCc7CmltcG9ydCB7IGlzU3R1ZGVudFVzZXIgfSBmcm9tICcuLi90eXBlcy91c2VyJzsKaW1wb3J0IHsKICBTVFVERU5UX0FWQVRBUlMsCiAgZ2V0U3R1ZGVudEF2YXRhclNvdXJjZSwKICBERUZBVUxUX1NUVURFTlRfQVZBVEFSX0lELAp9IGZyb20gJy4uL2NvbnN0YW50cy9hdmF0YXJzJzsK''''''\ndecoded = base64.b64decode\\(content\\).decode\\(''utf-8''\\)\nprint\\(decoded\\)\n\")",
+      "Bash(node -e:*)"
+    ],
+    "deny": [
+      "Bash(rm -rf:*)",
+      "Bash(sudo:*)",
+      "Read(.env)"
+    ]
+  }
+}

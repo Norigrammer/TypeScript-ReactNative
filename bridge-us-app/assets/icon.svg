@@ -1,0 +1,48 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background with gradient -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded square background -->
+  <rect width="1024" height="1024" rx="224" fill="url(#bgGradient)"/>
+
+  <!-- Large Bridge - main arch -->
+  <path d="M240 580 Q512 280 784 580" stroke="white" stroke-width="48" stroke-linecap="round" fill="none"/>
+
+  <!-- Bridge - deck/platform -->
+  <rect x="220" y="560" width="584" height="44" rx="22" fill="white"/>
+
+  <!-- Bridge - left support pillar -->
+  <rect x="270" y="560" width="48" height="160" rx="12" fill="white"/>
+
+  <!-- Bridge - right support pillar -->
+  <rect x="706" y="560" width="48" height="160" rx="12" fill="white"/>
+
+  <!-- Bridge - center support -->
+  <rect x="488" y="380" width="48" height="224" rx="12" fill="white"/>
+
+  <!-- Bridge - left middle support -->
+  <rect x="380" y="480" width="36" height="124" rx="10" fill="white"/>
+
+  <!-- Bridge - right middle support -->
+  <rect x="608" y="480" width="36" height="124" rx="10" fill="white"/>
+
+  <!-- Ground line -->
+  <rect x="120" y="700" width="784" height="28" rx="14" fill="white" opacity="0.4"/>
+
+  <!-- Left person (student) - beside the bridge, feet on ground -->
+  <circle cx="150" cy="558" r="36" fill="white"/>
+  <ellipse cx="150" cy="620" rx="28" ry="42" fill="white"/>
+  <rect x="132" y="654" width="16" height="56" rx="8" fill="white"/>
+  <rect x="152" y="654" width="16" height="56" rx="8" fill="white"/>
+
+  <!-- Right person (company) - beside the bridge, feet on ground -->
+  <circle cx="874" cy="558" r="36" fill="white"/>
+  <ellipse cx="874" cy="620" rx="28" ry="42" fill="white"/>
+  <rect x="856" y="654" width="16" height="56" rx="8" fill="white"/>
+  <rect x="876" y="654" width="16" height="56" rx="8" fill="white"/>
+</svg>
